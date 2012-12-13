@@ -54,6 +54,7 @@
 <div class="g-iptcedit-dialog">
 <body>
 <div id="iptcwrap">
+    <div id="errorMsg" class="g-warning" style="display: none;"><?= t('Bitte alle markierten Felder ausfüllen bzw. anpassen.') ?></div>
     <form action="<?= url::site("iptcedit/upload_dialog/{$item->id}") ?>" method="post" id="iptcedit">
     <p></p>
     <div id="iptc-choose">
@@ -85,6 +86,12 @@
         <div class="clear" style="color: white; font-size: 0.7em; margin-top: 3px;"><strong>* </strong><?= t('Preserves existing IPTC-data in uploaded items.'); ?></div>
     </div>
      <?php
+     $errors = array(
+                'IPTC_HEADLINE' => 'Der Titel ist zu lang. (40 Zeichen)',
+                'IPTC_CAPTION_IDENT' => 'Titel und Bildunterschrift sind identisch.',
+                'IPTC_CAPTION_TOSHORT' => 'Die Bildunterschrift ist zu kurz.'
+                );
+     
      if(empty($iptcTags)){
          echo "<div class='g-warning'>" . t('No IPTC-Tags are activated. Go to admin->settings->IPTC edit to activate and label.') . "</div>";
          $type = "hidden";
@@ -106,9 +113,17 @@
                 $formValue = $IPTC_CREATED_DATE;
             }
             //normal <input> for all but textarea for caption
-            if($key == 'IPTC_CAPTION') {
+            if($key == 'IPTC_HEADLINE') {
                 $inputs .= '<label for="' . $key . '"><span style="color:#656565;">' . $label . '</span></label>';
+                $inputs .= '<input id="' . $key  . '" type="text" name="iptcdata[' . $key .']" value="' . $formValue . '" size="100" maxlength="40"/><br />';
+            }elseif($key == 'IPTC_CAPTION') {
+                $inputs .= '<label for="' . $key . '"><span style="color:#656565;">' . $label . '</span></label>';
+                $inputs .= '<div id="IPTC_CAPTION_ERR_IDENT" style="display:none; color:red">' . $errors['IPTC_CAPTION_IDENT'] . '</div>';
+                $inputs .= '<div id="IPTC_CAPTION_ERR_TOSHORT" style="display:none; color:red">' . $errors['IPTC_CAPTION_TOSHORT'] . '</div>';
                 $inputs .= '<textarea id="' . $key  . '" type="text" name="iptcdata[' . $key .']" style="height:3.5em">'. $formValue .'</textarea><br />';
+            }elseif($key == 'IPTC_CREDIT') {
+                $inputs .= '<label for="' . $key . '"><span style="color:#656565;">' . $label . '</span></label>';
+                $inputs .= '<select name="iptcdata[' . $key .']"><option value="MOZ">MOZ</option><option value=" ">freier Fotograf</option><option value="dpa">dpa</option></select><br/>';
             }else{
                 $inputs .= '<label for="' . $key . '"><span style="color:#656565;">' . $label . '</span></label>';
                 $inputs .= '<input id="' . $key  . '" type="text" name="iptcdata[' . $key .']" value="' . $formValue . '" size="100" /><br />';
@@ -173,6 +188,7 @@
     //form validation
     function validate(){
         var invalid = 0;
+        var errorMsg = 'Bitte alle markierten Felder ausfüllen/korrigieren.';
         $('input').css('background-color', 'white');
         $('textarea').css('background-color', 'white');
         <?php
@@ -182,13 +198,26 @@
             }
         }
         ?>
+        if ($('#IPTC_HEADLINE').val() == $('#IPTC_CAPTION').val()) {
+            invalid += 1; $('#IPTC_CAPTION').css('background-color','#FFF9A0'); $('#IPTC_CAPTION_ERR_IDENT').toggle().css({'height':'15px','font-size':'0.8em'});
+        }else{
+            $('#IPTC_CAPTION_ERR_IDENT').hide().css('background-color','none');
+        }
+        
+        if ($('#IPTC_HEADLINE').val() > $('#IPTC_CAPTION').val()) {
+            invalid += 1; $('#IPTC_CAPTION').css('background-color','#FFF9A0'); $('#IPTC_CAPTION_ERR_TOSHORT').toggle().css({'height':'15px','font-size':'0.8em'});
+        }else{
+            $('#IPTC_CAPTION_ERR_TOSHORT').hide().css('background-color','none');
+        }
+        
         if(invalid == 0) {
             $('#iptcsubmit').css('visibility', 'visible');
             $('#validateLink').css('visibility', 'hidden');
+            $('#errorMsg').hide();
         }else{
             $('#iptcsubmit').css('visibility', 'hidden');
             $('#validateLink').css('visibility', 'visible');
-            alert("<?= t("Please fill all required (colored) fields.")?>");
+            $('#errorMsg').toggle();
         }
         return invalid;
     }
